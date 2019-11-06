@@ -9,7 +9,7 @@ struct cpu {
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null
 };
-
+#define DEFAULT_PRIORITY 60
 extern struct cpu cpus[NCPU];
 extern int ncpu;
 
@@ -49,6 +49,12 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  int createTime;
+  int endTime;
+  int totalTime;
+  int waitTime;
+  int runTime;
+  int priority;
 };
 
 // Process memory is laid out contiguously, low addresses first:
