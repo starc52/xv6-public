@@ -6,7 +6,9 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "pinfo.h"
 
+struct proc_stat;
 int
 sys_fork(void)
 {
@@ -111,4 +113,11 @@ int sys_set_priority(void){
     return -1;
   }
   return set_priority(prior);
+}
+int sys_getpinfo(void){
+  struct proc_stat* proc_stat;
+  if(argptr(0, (char**)&proc_stat, sizeof(struct proc_stat))<0){
+    return -1;
+  }
+  return getpinfo(proc_stat);
 }

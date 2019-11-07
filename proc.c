@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pinfo.h"
 
 struct
 {
@@ -14,7 +15,7 @@ struct
 } ptable;
 
 static struct proc *initproc;
-
+struct proc_stat;
 int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
@@ -121,6 +122,7 @@ found:
   p->endTime = ticks;
   p->waitTime = 0;
   p->priority = DEFAULT_PRIORITY;
+  p->lastRun = ticks;
   return p;
 }
 
@@ -351,6 +353,7 @@ void scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 #ifdef DEFAULT
+
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
       if (p->state != RUNNABLE)
@@ -405,7 +408,6 @@ void scheduler(void)
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
-
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
@@ -429,29 +431,33 @@ void scheduler(void)
         {
           minPriority = p;
         }
+        else if (minPriority->priority == p->priority)
+        {
+          if (minPriority->lastRun > p->lastRun)
+          {
+            minPriority = p;
+          }
+        }
       }
     }
-    if (minPriority != 0 && minPriority == RUNNABLE)
+    if (minPriority != 0 && minPriority->state == RUNNABLE)
     {
       p = minPriority;
-    }
-    if (p != 0)
-    {
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+      if (p->state == RUNNABLE)
+      {
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        p->lastRun = ticks;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+      }
     }
-#else 
-#ifdef MLFQ
-  
-#endif
 #endif
 #endif
 #endif
@@ -702,11 +708,29 @@ int set_priority(int prior)
   {
     prior = 100;
   }
-  acquire(&ptable.lock);
+  // acquire(&ptable.lock);
   int initialPriority = curproc->priority;
-  curproc->state = RUNNABLE;
+  // curproc->state = RUNNABLE;
   curproc->priority = prior;
-  sched();
-  release(&ptable.lock);
+  // sched();
+  // release(&ptable.lock);
   return initialPriority;
+}
+int getpinfo(struct proc_stat *proc_stat)
+{
+  struct proc *p;
+  p = myproc();
+  if (p == 0)
+  {
+    return -1;
+  }
+  proc_stat->pid = myproc()->pid;
+  proc_stat->runtime = myproc()->runTime;
+  proc_stat->num_run = 0;
+  for (int i = 0; i < 5; i++)
+  {
+    proc_stat->ticks[i] = 0;
+  }
+  proc_stat->current_queue = -1;
+  return 0;
 }

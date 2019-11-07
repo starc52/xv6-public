@@ -4,6 +4,7 @@
 #include "stat.h"
 #include "user.h"
 #include "fcntl.h"
+#include "pinfo.h"
 
 char *argv[] = {"sh", 0};
 
@@ -27,10 +28,6 @@ int main(void)
 #else
 #ifdef PBS
   printf(1, "Scheduling Algorithm : PBS\n");
-#else
-#ifdef MLFQ
-  printf(1, "Scheduling Algorithms : MLFQ\n");
-#endif
 #endif
 #endif
 #endif
